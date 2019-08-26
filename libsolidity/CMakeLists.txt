@@ -35,6 +35,8 @@ set(sources
 	ast/AST_accept.h
 	ast/ASTAnnotations.cpp
 	ast/ASTAnnotations.h
+	ast/ASTCallgraph.cpp
+	ast/ASTCallgraph.h
 	ast/ASTEnums.h
 	ast/ASTForward.h
 	ast/ASTJsonConverter.cpp

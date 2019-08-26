@@ -27,6 +27,7 @@
 
 #include <libsolidity/interface/Version.h>
 #include <libsolidity/parsing/Parser.h>
+#include <libsolidity/ast/ASTCallgraph.h>
 #include <libsolidity/ast/ASTPrinter.h>
 #include <libsolidity/ast/ASTJsonConverter.h>
 #include <libsolidity/analysis/NameAndTypeResolver.h>
@@ -109,6 +110,7 @@ static string const g_strAstJson = "ast-json";
 static string const g_strAstCompactJson = "ast-compact-json";
 static string const g_strBinary = "bin";
 static string const g_strBinaryRuntime = "bin-runtime";
+static string const g_strCallgraph = "callgraph";
 static string const g_strCombinedJson = "combined-json";
 static string const g_strCompactJSON = "compact-format";
 static string const g_strContracts = "contracts";
@@ -163,6 +165,7 @@ static string const g_argAstCompactJson = g_strAstCompactJson;
 static string const g_argAstJson = g_strAstJson;
 static string const g_argBinary = g_strBinary;
 static string const g_argBinaryRuntime = g_strBinaryRuntime;
+static string const g_argCallgraph = g_strCallgraph;
 static string const g_argCombinedJson = g_strCombinedJson;
 static string const g_argCompactJSON = g_strCompactJSON;
 static string const g_argErrorRecovery = g_strErrorRecovery;
@@ -723,6 +726,7 @@ Allowed options)",
 		(g_argIR.c_str(), "Intermediate Representation (IR) of all contracts (EXPERIMENTAL).")
 		(g_argEWasm.c_str(), "EWasm text representation of all contracts (EXPERIMENTAL).")
 		(g_argSignatureHashes.c_str(), "Function signature hashes of the contracts.")
+		(g_argCallgraph.c_str(), "Callgraph of the contracts.")
 		(g_argNatspecUser.c_str(), "Natspec user documentation of all contracts.")
 		(g_argNatspecDev.c_str(), "Natspec developer documentation of all contracts.")
 		(g_argMetadata.c_str(), "Combined Metadata JSON whose Swarm hash is stored on-chain.");
@@ -1114,6 +1118,8 @@ void CommandLineInterface::handleAst(string const& _argStr)
 		title = "JSON AST:";
 	else if (_argStr == g_argAstCompactJson)
 		title = "JSON AST (compact format):";
+	else if (_argStr == g_argCallgraph)
+		title = "Callgraph:";
 	else
 		BOOST_THROW_EXCEPTION(InternalCompilerError() << errinfo_comment("Illegal argStr for AST"));
 
@@ -1137,6 +1143,7 @@ void CommandLineInterface::handleAst(string const& _argStr)
 				}
 
 		bool legacyFormat = !m_args.count(g_argAstCompactJson);
+		ASTCallgraph callgraph;
 		if (m_args.count(g_argOutputDir))
 		{
 			for (auto const& sourceCode: m_sourceCodes)
@@ -1147,6 +1154,10 @@ void CommandLineInterface::handleAst(string const& _argStr)
 				{
 					ASTPrinter printer(m_compiler->ast(sourceCode.first), sourceCode.second);
 					printer.print(data);
+				}
+				else if (_argStr == g_argCallgraph)
+				{
+					callgraph.print(m_compiler->ast(sourceCode.first), data);
 				}
 				else
 				{
@@ -1171,6 +1182,10 @@ void CommandLineInterface::handleAst(string const& _argStr)
 						gasCosts
 					);
 					printer.print(sout());
+				}
+				else if (_argStr == g_argCallgraph)
+				{
+					callgraph.print(m_compiler->ast(sourceCode.first), sout());
 				}
 				else
 					ASTJsonConverter(legacyFormat, m_compiler->sourceIndices()).print(sout(), m_compiler->ast(sourceCode.first));
@@ -1401,6 +1416,7 @@ void CommandLineInterface::outputCompilationResults()
 	handleAst(g_argAst);
 	handleAst(g_argAstJson);
 	handleAst(g_argAstCompactJson);
+	handleAst(g_argCallgraph);
 
 	if (!m_compiler->compilationSuccessful())
 	{
